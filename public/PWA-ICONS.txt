@@ -1,0 +1,18 @@
+PWA Icons Required
+==================
+
+Place the following PNG files in the public directory:
+
+1. pwa-192x192.png  - 192x192px app icon
+2. pwa-512x512.png  - 512x512px app icon (also used as maskable)
+3. favicon.ico      - Browser favicon
+
+Icon Design Guidelines:
+- Use zen garden theme colors (#2D4A3E primary, #FAF8F5 background)
+- Include a simple bonsai or plant silhouette
+- Ensure good contrast for visibility
+- Maskable icon should have safe zone padding
+
+Tools for generating icons:
+- https://realfavicongenerator.net/
+- https://maskable.app/
