@@ -1,9 +1,13 @@
 import { Timer } from './components/Timer';
 import { Controls } from './components/Controls';
 import { Scene } from './three';
+import { useAudio } from './hooks/useAudio';
 import './index.css';
 
 function App() {
+  // Initialize audio system
+  useAudio();
+
   return (
     <div className="h-full w-full flex flex-col">
       {/* 3D Scene - 60% */}
