@@ -4,11 +4,11 @@ import { Group } from 'three';
 import { useStore } from '../stores/useStore';
 import type { PlantStage } from '../types';
 
-function getPlantStage(progress: number): PlantStage {
-  if (progress < 25) return 'seed';
-  if (progress < 50) return 'sprout';
-  if (progress < 75) return 'growing';
-  return 'mature';
+function getPlantStage(totalGrowth: number): PlantStage {
+  if (totalGrowth < 4) return 'sprout';
+  if (totalGrowth < 12) return 'young';
+  if (totalGrowth < 24) return 'mature';
+  return 'ancient';
 }
 
 export function Plant() {
@@ -16,7 +16,7 @@ export function Plant() {
   const plant = useStore((state) => state.plant);
   const timer = useStore((state) => state.timer);
 
-  const stage = getPlantStage(plant.progress);
+  const stage = getPlantStage(plant.totalGrowth);
   const isRunning = timer.status === 'running';
 
   // Sway animation - gentle movement when timer is running
@@ -27,13 +27,14 @@ export function Plant() {
   });
 
   // Scale based on growth stage
-  const scale = stage === 'seed' ? 0.3
-    : stage === 'sprout' ? 0.5
-    : stage === 'growing' ? 0.75
+  const scale = stage === 'sprout' ? 0.4
+    : stage === 'young' ? 0.6
+    : stage === 'mature' ? 0.85
     : 1;
 
-  // Crown size based on progress
-  const crownScale = 0.3 + (plant.progress / 100) * 0.5;
+  // Crown size based on total growth (max at ~24 pomodoros)
+  const growthProgress = Math.min(plant.totalGrowth / 24, 1);
+  const crownScale = 0.3 + growthProgress * 0.5;
 
   return (
     <group ref={groupRef} position={[0, 0.6, 0]} scale={scale}>
@@ -49,8 +50,8 @@ export function Plant() {
         <meshStandardMaterial color="#2D4A3E" roughness={0.8} />
       </mesh>
 
-      {/* Branch clusters - smaller spheres */}
-      {stage !== 'seed' && (
+      {/* Branch clusters - smaller spheres (visible from young stage) */}
+      {stage !== 'sprout' && (
         <>
           <mesh position={[-0.3, 0.7, 0.1]} scale={crownScale * 0.6}>
             <sphereGeometry args={[0.4, 12, 12]} />
