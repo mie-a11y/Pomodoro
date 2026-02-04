@@ -1,15 +1,14 @@
 import { Timer } from './components/Timer';
 import { Controls } from './components/Controls';
+import { Scene } from './three';
 import './index.css';
 
 function App() {
   return (
     <div className="h-full w-full flex flex-col">
-      {/* 3D Scene placeholder - 60% */}
-      <div className="flex-[6] flex items-center justify-center bg-gradient-to-b from-[var(--bg-start)] to-[var(--bg-end)]">
-        <div className="text-[var(--color-text-muted)] text-sm">
-          3D 场景加载中...
-        </div>
+      {/* 3D Scene - 60% */}
+      <div className="flex-[6]">
+        <Scene />
       </div>
 
       {/* Timer display - 15% */}

@@ -1,5 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { Pot } from './Pot';
+import { Plant } from './Plant';
 
 export function Scene() {
   return (
@@ -27,11 +29,11 @@ export function Scene() {
         maxPolarAngle={Math.PI / 2}
       />
 
-      {/* Placeholder for Pot and Plant */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[1, 0.5, 1]} />
-        <meshStandardMaterial color="#8B7355" />
-      </mesh>
+      {/* Pot component */}
+      <Pot />
+
+      {/* Plant component */}
+      <Plant />
     </Canvas>
   );
 }
