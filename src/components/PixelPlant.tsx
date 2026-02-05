@@ -186,6 +186,27 @@ interface BranchData {
   endX: number;
   endY: number;
   pixels: PixelPoint[];
+  droopAngle?: number;  // L2.4: 下垂角度（松柏风格）
+}
+
+// ============================================
+// J2: 侧枝数据接口 (#650-653, #616)
+// ============================================
+interface SideBranchData {
+  triggerProgress: number;    // J2.1: 触发时的 timerProgress
+  growthFactor: number;       // J2.2: 生长速度系数
+  direction: 'left' | 'right'; // J2.3: 伸展方向
+  attachHeightRatio: number;  // J2.4: 附着高度比例
+}
+
+// ============================================
+// M2.2: 苔藓数据接口 (#713)
+// ============================================
+interface MossData {
+  x: number;
+  y: number;
+  size: 1 | 2;
+  color: string;
 }
 
 // ============================================
@@ -217,15 +238,232 @@ const TRUNK_WIDTH_CONFIG = {
 };
 
 // ============================================
-// E3.1: 分支角度范围常量
-// ============================================
-const BRANCH_ANGLE_MIN = 30;
-const BRANCH_ANGLE_MAX = 60;
-
-// ============================================
 // F3.1: 叶片偏移范围常量
 // ============================================
 const LEAF_OFFSET_MAX = 3;
+
+// ============================================
+// J1: 侧枝触发机制常量 (#647-649, #739-748)
+// ============================================
+/** J1.1: 侧枝触发阈值 - timerProgress 达到这些值时触发侧枝生成 */
+const SIDE_BRANCH_THRESHOLDS = [0.3, 0.6, 0.85] as const;
+
+/** J1.2: 侧枝生长速度系数 - 相对主干的 0.6 倍 */
+const SIDE_BRANCH_GROWTH_FACTOR = 0.6;
+
+/** J1.3: 侧枝附着区域 - 在主干中部区域生成 */
+const SIDE_BRANCH_ATTACH_ZONE = {
+  minRatio: 0.3,  // 最低附着点（主干高度 30%）
+  maxRatio: 0.7,  // 最高附着点（主干高度 70%）
+};
+
+// ============================================
+// K1: 底部增粗配置常量 (#665-667, #749-754)
+// ============================================
+/** K1.1: 底部增粗区域比例 - 底部 20% */
+const THICKENING_ZONE_RATIO = 0.2;
+
+/** K1.2: 底部增粗像素量 */
+const THICKENING_AMOUNT = 1;
+
+/** K1.3: 触发增粗的最小植物高度 */
+const MIN_HEIGHT_FOR_THICKENING = 15;
+
+// ============================================
+// K3: 主干颜色渐变配置 (#672-675, #755-764)
+// ============================================
+/** K3.1: 主干底部颜色（深褐色/木质化）*/
+const TRUNK_BOTTOM_COLOR: ColorTier = {
+  main: '#4A3728',
+  light: '#5D4A3A',
+  dark: '#362818',
+};
+
+/** K3.2: 主干顶部颜色（翠绿色/新芽）*/
+const TRUNK_TOP_COLOR: ColorTier = {
+  main: '#4A7C59',
+  light: '#5D9A6E',
+  dark: '#3A6147',
+};
+
+/** K3.3: 颜色渐变开始位置 */
+const GRADIENT_TRANSITION_START = 0.2;
+
+/** K3.4: 颜色渐变结束位置 */
+const GRADIENT_TRANSITION_END = 0.85;
+
+// ============================================
+// L1: 松柏风格常量 (#684-687, #765-770)
+// ============================================
+/** L1.1: 松柏枝条角度（接近水平）*/
+const PINE_BRANCH_ANGLE = {
+  min: 75,  // 最小角度（度）
+  max: 95,  // 最大角度（度）
+};
+
+/** L1.3: 松柏枝条下垂角度（度）*/
+const PINE_BRANCH_DROOP = {
+  min: 5,
+  max: 15,
+};
+
+/** L1.4: 主干扭曲增强配置（覆盖 S_CURVE_CONFIG）*/
+const TRUNK_TWIST_CONFIG = {
+  amplitude: 5,      // 原 3，增强扭曲
+  frequency: 2.0,    // 原 1.5，更多波动
+  jitterAmount: 2,   // 原 1，增强自然感
+};
+
+// ============================================
+// M1: 苔藓配置常量 (#708-711, #785-794)
+// ============================================
+/** M1.1: 苔藓颜色 */
+const MOSS_COLOR: ColorTier = {
+  main: '#5D8A4A',
+  light: '#7CB561',
+  dark: '#4A6E3B',
+};
+
+/** M1.2: 苔藓数量范围 */
+const MOSS_COUNT = {
+  min: 3,
+  max: 7,
+};
+
+/** M1.4: 苔藓生成区域 */
+const MOSS_ZONE = {
+  edgeOffset: { min: 2, max: 4 },
+  topOffset: { min: 0, max: 2 },
+};
+
+// ============================================
+// N1: 小木牌配置常量 (#719-723, #795-799)
+// ============================================
+/** N1.1: 小木牌尺寸 */
+const SIGN_BOARD_SIZE = {
+  width: 12,
+  height: 8,
+};
+
+/** N1.2: 小木牌颜色 */
+const SIGN_BOARD_COLOR = {
+  board: '#8B7355',
+  post: '#6B5344',
+  text: '#3D2914',
+};
+
+/** N1.3: 小木牌位置（相对花盆）*/
+const SIGN_BOARD_POSITION = {
+  offsetX: -25,  // 花盆左侧
+  offsetY: -5,   // 泥土上方
+};
+
+/** N1.4: 木柱像素图案 (2x8) */
+const SIGN_POST_PATTERN = [
+  [1, 1],
+  [1, 1],
+  [1, 1],
+  [1, 1],
+  [1, 1],
+  [1, 1],
+  [1, 1],
+  [1, 1],
+];
+
+/** N1.5: 木板像素图案 (12x8) */
+const SIGN_BOARD_PATTERN = [
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+  [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+  [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+  [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+];
+
+// ============================================
+// N2: 像素数字配置 (#724-727, #800-809)
+// ============================================
+/** N2.1: 像素数字宽度 */
+const PIXEL_DIGIT_WIDTH = 3;
+
+/** N2.2: 像素数字高度 */
+const PIXEL_DIGIT_HEIGHT = 5;
+
+/** N2.3-N2.4: 像素数字图案 (3x5) */
+const PIXEL_DIGITS: Record<string, number[][]> = {
+  '0': [
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+  ],
+  '1': [
+    [0, 1, 0],
+    [1, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [1, 1, 1],
+  ],
+  '2': [
+    [1, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 1],
+  ],
+  '3': [
+    [1, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+  ],
+  '4': [
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [0, 0, 1],
+    [0, 0, 1],
+  ],
+  '5': [
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+  ],
+  '6': [
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+  ],
+  '7': [
+    [1, 1, 1],
+    [0, 0, 1],
+    [0, 0, 1],
+    [0, 0, 1],
+    [0, 0, 1],
+  ],
+  '8': [
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+  ],
+  '9': [
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1],
+    [0, 0, 1],
+    [1, 1, 1],
+  ],
+};
 
 // ============================================
 // B2: 单像素绘制函数
@@ -500,6 +738,231 @@ function drawSoil(
       drawPixel(ctx, lx, ly, ZEN_PALETTE_V2.FALLEN_LEAF);
     }
   }
+
+  // M3.1-M3.3: 集成苔藓到泥土 (#716-718, #792-794, #633)
+  const mossData = generateMoss(random, startX, topY, width);
+  drawMoss(ctx, mossData);
+}
+
+// ============================================
+// M2: 苔藓生成函数 (#712-718, #785-794, #632)
+// ============================================
+function generateMoss(
+  random: () => number,
+  startX: number,
+  topY: number,
+  width: number
+): MossData[] {
+  const mossData: MossData[] = [];
+
+  // M2.3.1-M2.3.2: 计算左右边缘有效区域
+  const leftEdgeX = startX + MOSS_ZONE.edgeOffset.min +
+    Math.floor(random() * (MOSS_ZONE.edgeOffset.max - MOSS_ZONE.edgeOffset.min));
+  const rightEdgeX = startX + width - MOSS_ZONE.edgeOffset.min -
+    Math.floor(random() * (MOSS_ZONE.edgeOffset.max - MOSS_ZONE.edgeOffset.min));
+
+  // M2.3.3: 随机分配苔藓数量
+  const totalCount = MOSS_COUNT.min + Math.floor(random() * (MOSS_COUNT.max - MOSS_COUNT.min + 1));
+
+  for (let i = 0; i < totalCount; i++) {
+    // M2.3.4: 随机分配到左右两侧
+    const isLeft = random() < 0.6;
+    const baseX = isLeft ? leftEdgeX : rightEdgeX;
+    const x = baseX + Math.floor(random() * 3) - 1;
+
+    const yOffset = MOSS_ZONE.topOffset.min +
+      Math.floor(random() * (MOSS_ZONE.topOffset.max - MOSS_ZONE.topOffset.min + 1));
+    const y = topY + yOffset;
+
+    // M2.4.1-M2.4.2: 随机选择颜色
+    const colorRandom = random();
+    let color: string;
+    if (colorRandom < 0.7) {
+      color = MOSS_COLOR.main;
+    } else if (colorRandom < 0.9) {
+      color = MOSS_COLOR.light;
+    } else {
+      color = MOSS_COLOR.dark;
+    }
+
+    // M2.4.3: 随机决定大小
+    const size: 1 | 2 = random() < 0.8 ? 1 : 2;
+
+    mossData.push({ x, y, size, color });
+  }
+
+  return mossData;
+}
+
+// M3.2: 绘制苔藓 (#717, #792-794)
+function drawMoss(ctx: CanvasRenderingContext2D, mossData: MossData[]) {
+  mossData.forEach(moss => {
+    ctx.fillStyle = moss.color;
+    ctx.fillRect(moss.x, moss.y, moss.size, moss.size);
+  });
+}
+
+// ============================================
+// K4: 主干颜色渐变函数 (#676-679, #755-764, #623)
+// ============================================
+const trunkColorCache = new Map<number, ColorTier>();
+
+function getTrunkColorByHeight(heightRatio: number): ColorTier {
+  // K4.4.2: 量化 heightRatio 作为缓存 key
+  const quantizedKey = Math.round(heightRatio * 100);
+
+  // K4.4.3: 缓存查询
+  if (trunkColorCache.has(quantizedKey)) {
+    return trunkColorCache.get(quantizedKey)!;
+  }
+
+  // K4.2.1-K4.2.3: 判断渐变区间
+  let normalizedPos: number;
+  if (heightRatio < GRADIENT_TRANSITION_START) {
+    normalizedPos = 0;
+  } else if (heightRatio > GRADIENT_TRANSITION_END) {
+    normalizedPos = 1;
+  } else {
+    // K4.2.2: 区间内归一化
+    normalizedPos = (heightRatio - GRADIENT_TRANSITION_START) /
+      (GRADIENT_TRANSITION_END - GRADIENT_TRANSITION_START);
+  }
+
+  // K4.3.1-K4.3.4: 三通道颜色插值
+  const result: ColorTier = {
+    main: lerpColor(TRUNK_BOTTOM_COLOR.main, TRUNK_TOP_COLOR.main, normalizedPos),
+    light: lerpColor(TRUNK_BOTTOM_COLOR.light, TRUNK_TOP_COLOR.light, normalizedPos),
+    dark: lerpColor(TRUNK_BOTTOM_COLOR.dark, TRUNK_TOP_COLOR.dark, normalizedPos),
+  };
+
+  // K4.4.3: 缓存写入
+  trunkColorCache.set(quantizedKey, result);
+
+  return result;
+}
+
+// ============================================
+// N3: 像素数字绘制函数 (#728-730, #810-815, #636)
+// ============================================
+function drawPixelDigit(
+  ctx: CanvasRenderingContext2D,
+  digit: number,
+  x: number,
+  y: number,
+  color: string
+) {
+  // N3.2.1: 获取数字对应的图案数组
+  const pattern = PIXEL_DIGITS[digit.toString()];
+  if (!pattern) return;
+
+  ctx.fillStyle = color;
+
+  // N3.2.2-N3.2.3: 双层循环遍历图案数组
+  for (let row = 0; row < PIXEL_DIGIT_HEIGHT; row++) {
+    for (let col = 0; col < PIXEL_DIGIT_WIDTH; col++) {
+      if (pattern[row][col] === 1) {
+        ctx.fillRect(x + col, y + row, 1, 1);
+      }
+    }
+  }
+}
+
+// N3.3: 多位数字绘制 (#730, #813-815)
+function drawPixelNumber(
+  ctx: CanvasRenderingContext2D,
+  num: number,
+  x: number,
+  y: number,
+  color: string
+) {
+  // N3.3.1: 数字转字符串
+  const digits = num.toString();
+  const digitSpacing = PIXEL_DIGIT_WIDTH + 1;
+
+  // N3.3.3: 遍历并绘制每位数字
+  for (let i = 0; i < digits.length; i++) {
+    const offsetX = i * digitSpacing;
+    drawPixelDigit(ctx, parseInt(digits[i]), x + offsetX, y, color);
+  }
+}
+
+// ============================================
+// N4: 小木牌绘制函数 (#731-734, #816-821, #637)
+// ============================================
+function drawSignBoard(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  roundCount: number
+) {
+  const { width, height } = SIGN_BOARD_SIZE;
+
+  // N4.3.1-N4.3.2: 绘制木板
+  ctx.fillStyle = SIGN_BOARD_COLOR.board;
+  for (let row = 0; row < SIGN_BOARD_PATTERN.length; row++) {
+    for (let col = 0; col < SIGN_BOARD_PATTERN[row].length; col++) {
+      if (SIGN_BOARD_PATTERN[row][col] === 1) {
+        ctx.fillRect(x + col, y + row, 1, 1);
+      }
+    }
+  }
+
+  // N4.2.1-N4.2.2: 绘制木柱
+  const postX = x + Math.floor(width / 2) - 1;
+  const postY = y + height;
+  ctx.fillStyle = SIGN_BOARD_COLOR.post;
+  for (let row = 0; row < SIGN_POST_PATTERN.length; row++) {
+    for (let col = 0; col < SIGN_POST_PATTERN[row].length; col++) {
+      if (SIGN_POST_PATTERN[row][col] === 1) {
+        ctx.fillRect(postX + col, postY + row, 1, 1);
+      }
+    }
+  }
+
+  // N4.4.1-N4.4.2: 计算数字居中位置并绘制
+  const digits = roundCount.toString();
+  const numberWidth = digits.length * (PIXEL_DIGIT_WIDTH + 1) - 1;
+  const textX = x + Math.floor((width - numberWidth) / 2);
+  const textY = y + Math.floor((height - PIXEL_DIGIT_HEIGHT) / 2);
+
+  drawPixelNumber(ctx, roundCount, textX, textY, SIGN_BOARD_COLOR.text);
+}
+
+// ============================================
+// J3: 侧枝触发检测函数 (#654-657, #739-741, #617)
+// ============================================
+function checkSideBranchTrigger(
+  prevProgress: number,
+  currentProgress: number,
+  triggeredSet: Set<number>,
+  random: () => number
+): SideBranchData[] {
+  const newBranches: SideBranchData[] = [];
+
+  // J3.2.3: 遍历所有阈值检测跨越
+  for (const threshold of SIDE_BRANCH_THRESHOLDS) {
+    // J3.2.2: 单阈值跨越判断
+    if (prevProgress < threshold && currentProgress >= threshold && !triggeredSet.has(threshold)) {
+      triggeredSet.add(threshold);
+
+      // J3.3: 计算侧枝附着位置
+      const attachHeightRatio = SIDE_BRANCH_ATTACH_ZONE.minRatio +
+        random() * (SIDE_BRANCH_ATTACH_ZONE.maxRatio - SIDE_BRANCH_ATTACH_ZONE.minRatio);
+
+      // J5.2: 方向选择（交替+随机）
+      const direction: 'left' | 'right' = random() > 0.5 ? 'left' : 'right';
+
+      // J3.4: 创建返回值
+      newBranches.push({
+        triggerProgress: threshold,
+        growthFactor: SIDE_BRANCH_GROWTH_FACTOR,
+        direction,
+        attachHeightRatio,
+      });
+    }
+  }
+
+  return newBranches;
 }
 
 // ============================================
@@ -608,17 +1071,36 @@ function calculateSCurveOffset(
 }
 
 // ============================================
-// D5.2: 主干宽度计算 (#375, #584-586)
+// D5.2 + K2: 主干宽度计算（含底部增粗）(#375, #584-586, #668-671, #749-754, #621)
 // ============================================
-function getTrunkWidth(heightRatio: number): number {
+function getTrunkWidth(heightRatio: number, totalHeight: number = 0): number {
   const { bottomWidth, middleWidth, topWidth, bottomRatio, middleRatio } = TRUNK_WIDTH_CONFIG;
+
+  // K2.3.1-K2.3.3: 基础宽度计算
+  let baseWidth: number;
   if (heightRatio < bottomRatio) {
-    return bottomWidth;
+    baseWidth = bottomWidth;
   } else if (heightRatio < middleRatio) {
-    return middleWidth;
+    baseWidth = middleWidth;
   } else {
-    return topWidth;
+    baseWidth = topWidth;
   }
+
+  // K2.3.1: 判断是否在底部区域
+  const isInBottomZone = heightRatio < THICKENING_ZONE_RATIO;
+
+  // K2.3.2: 检查植物高度是否达到阈值
+  const isHeightSufficient = totalHeight >= MIN_HEIGHT_FOR_THICKENING;
+
+  // K2.3.3: 组合条件
+  if (isInBottomZone && isHeightSufficient) {
+    // K2.4.2: 计算边界平滑因子
+    const smoothFactor = heightRatio / THICKENING_ZONE_RATIO;
+    // K2.4.3: 应用增粗量
+    return Math.round(baseWidth + THICKENING_AMOUNT * (1 - smoothFactor));
+  }
+
+  return baseWidth;
 }
 
 // ============================================
@@ -649,21 +1131,28 @@ function generateTrunkPixels(
   // D4: 基于 totalGrowth 的随机相位 (#280, #373)
   const phase = (totalGrowth % 10) * (S_CURVE_CONFIG.phaseRange / 10);
 
+  // L6.1-L6.3: 使用增强的扭曲配置 (#704-707)
+  const amplitude = TRUNK_TWIST_CONFIG.amplitude;
+  const jitterAmount = TRUNK_TWIST_CONFIG.jitterAmount;
+
   for (let i = 0; i < currentHeight; i++) {
     const y = startY - i;
     const heightRatio = i / currentHeight;
 
-    // D3.2: S 曲线偏移 (#279, #371)
-    let offsetX = calculateSCurveOffset(heightRatio, phase, S_CURVE_CONFIG.amplitude);
+    // D3.2: S 曲线偏移（使用增强振幅）(#279, #371)
+    let offsetX = calculateSCurveOffset(heightRatio, phase, amplitude);
 
-    // D3.3: 叠加微小随机抖动 (#372, #516-518)
+    // D3.3: 叠加微小随机抖动（使用增强抖动量）(#372, #516-518)
     if (i > 0 && i % S_CURVE_CONFIG.jitterInterval === 0) {
       const jitter = Math.floor(random() * 3) - 1; // -1, 0, 1
-      offsetX += jitter * S_CURVE_CONFIG.jitterAmount;
+      offsetX += jitter * jitterAmount;
     }
 
-    const x = Math.floor(startX + offsetX);
-    const width = getTrunkWidth(heightRatio);
+    // L6.4: 验证扭曲不超出边界
+    const x = Math.max(10, Math.min(CANVAS_WIDTH - 10, Math.floor(startX + offsetX)));
+
+    // K5.4: 传入 totalHeight 到宽度计算
+    const width = getTrunkWidth(heightRatio, currentHeight);
 
     pixels.push({ x, y, width, heightRatio });
   }
@@ -671,94 +1160,147 @@ function generateTrunkPixels(
   return pixels;
 }
 
-// D5.3 + D6: 绘制主干（含粗细渐变和阴影）(#376-378, #587-589)
+// D5.3 + D6 + K5: 绘制主干（含粗细渐变、颜色渐变和阴影）(#376-378, #587-589, #680-683, #624)
 function drawTrunk(ctx: CanvasRenderingContext2D, pixels: TrunkPixelData[]) {
-  const trunk = ZEN_PALETTE_V2.TRUNK;
-
   pixels.forEach(p => {
-    // D5.3.1: 绘制主干主像素
-    drawPixel(ctx, p.x, p.y, trunk.main);
+    // K5.1-K5.2: 获取当前高度的颜色
+    const trunkColor = getTrunkColorByHeight(p.heightRatio);
+
+    // D5.3.1 + K5.3: 绘制主干主像素（使用动态颜色）
+    drawPixel(ctx, p.x, p.y, trunkColor.main);
 
     // D5.3.2-3: 绘制第二像素（如果宽度 >= 2）
     if (p.width >= 2) {
-      drawPixel(ctx, p.x + 1, p.y, trunk.main);
+      drawPixel(ctx, p.x + 1, p.y, trunkColor.main);
 
       // D6: 阴影面（右侧）(#282, #377-378)
       if (p.heightRatio < 0.5) {
-        drawPixel(ctx, p.x + 1, p.y, trunk.dark);
+        drawPixel(ctx, p.x + 1, p.y, trunkColor.dark);
       }
     }
 
     // 底部额外宽度
     if (p.heightRatio < 0.1 && p.width >= 2) {
-      drawPixel(ctx, p.x - 1, p.y, trunk.dark);
+      drawPixel(ctx, p.x - 1, p.y, trunkColor.dark);
     }
   });
 }
 
 // ============================================
-// E1-E6: 分支绘制
+// E1-E6 + J4 + J5 + L2: 分支绘制（松柏风格 + 阈值触发）
 // ============================================
 function generateBranches(
   random: () => number,
   trunkPixels: TrunkPixelData[],
-  progress: number
+  progress: number,
+  triggeredBranches: SideBranchData[] = []
 ): BranchData[] {
   const branches: BranchData[] = [];
 
-  // E1: 分支生成条件
-  if (progress <= 0.5 || trunkPixels.length < 10) {
+  // J4.1: 移除 progress > 0.5 条件，改用阈值触发 (#658)
+  if (trunkPixels.length < 10) {
     return branches;
   }
 
-  // 分支数量：progress 0.5-1.0 对应 1-2 条
-  const branchCount = Math.floor((progress - 0.5) * 4);
-  const actualCount = Math.min(branchCount, 2);
+  // J4.2-J4.3: 遍历已触发的侧枝生成分支 (#659-660, #742-745)
+  let lastDirection: 'left' | 'right' | null = null;
 
-  if (actualCount === 0) return branches;
-
-  // E2: 分支附着点（主干 40%-70% 高度区间）
-  const minIndex = Math.floor(trunkPixels.length * 0.4);
-  const maxIndex = Math.floor(trunkPixels.length * 0.7);
-
-  // 记录已使用的方向，确保非对称
-  let lastDirection = 0;
-
-  for (let i = 0; i < actualCount; i++) {
-    const attachIndex = minIndex + Math.floor(random() * (maxIndex - minIndex));
-    const attachPoint = trunkPixels[attachIndex];
+  for (const sideBranch of triggeredBranches) {
+    // J4.3.1: 计算侧枝起始点坐标（基于附着高度比例）
+    const attachIndex = Math.floor(trunkPixels.length * sideBranch.attachHeightRatio);
+    const attachPoint = trunkPixels[Math.min(attachIndex, trunkPixels.length - 1)];
 
     if (!attachPoint) continue;
 
-    // E3.2: 非对称方向选择
-    let direction: number;
-    if (i === 0) {
-      direction = random() > 0.5 ? 1 : -1;
+    // J5.1-J5.3: 非对称方向选择（交替+随机）(#662-664, #746-748)
+    let direction: 'left' | 'right';
+    if (lastDirection === null) {
+      // J5.2.1: 首条分支使用触发数据的方向
+      direction = sideBranch.direction;
     } else {
-      // 第二条分支尽量与第一条方向不同
-      direction = random() > 0.7 ? lastDirection : -lastDirection;
+      // J5.2.2: 后续分支尽量与上一条方向不同
+      const oppositeDir: 'left' | 'right' = lastDirection === 'left' ? 'right' : 'left';
+      // J5.3: 0.3 概率允许同向
+      direction = random() < 0.3 ? lastDirection : oppositeDir;
     }
+    // J5.2.3: 更新 lastDirection 记录
     lastDirection = direction;
 
-    // E3.1 & E4: 角度和长度
-    const angleDeg = BRANCH_ANGLE_MIN + random() * (BRANCH_ANGLE_MAX - BRANCH_ANGLE_MIN);
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const length = 4 + Math.floor(random() * 7); // 4-10 像素
+    const directionSign = direction === 'left' ? -1 : 1;
 
-    // E3.3: 计算终点
-    const endX = attachPoint.x + direction * Math.floor(length * Math.cos(angleRad));
+    // L2.1-L2.2.1: 松柏风格角度计算（接近水平 75-95°）(#688, #765)
+    const baseAngleDeg = PINE_BRANCH_ANGLE.min +
+      random() * (PINE_BRANCH_ANGLE.max - PINE_BRANCH_ANGLE.min);
+
+    // L2.2.2-L2.2.3: 添加下垂效果 (#689, #766-767)
+    const droopDeg = PINE_BRANCH_DROOP.min +
+      random() * (PINE_BRANCH_DROOP.max - PINE_BRANCH_DROOP.min);
+    const finalAngleDeg = baseAngleDeg - droopDeg; // 下垂减小角度
+
+    const angleRad = (finalAngleDeg * Math.PI) / 180;
+
+    // J4.4: 应用 0.6 倍生长速度系数到分支长度 (#661)
+    const baseLength = 5 + Math.floor(random() * 8); // 5-12 像素基础长度
+    const length = Math.floor(baseLength * sideBranch.growthFactor);
+
+    // L2.3.1-L2.3.3: 水平枝条像素生成 (#690, #768-770)
+    // 由于角度接近水平，使用标准 Bresenham 算法即可保证连续
+    const endX = attachPoint.x + directionSign * Math.floor(length * Math.cos(angleRad));
     const endY = attachPoint.y - Math.floor(length * Math.sin(angleRad));
 
     // E5: 存储分支像素
     const pixels = drawPixelLine(attachPoint.x, attachPoint.y, endX, endY);
 
+    // L2.4: 更新 BranchData 记录下垂信息 (#691)
     branches.push({
       startX: attachPoint.x,
       startY: attachPoint.y,
       endX,
       endY,
       pixels,
+      droopAngle: droopDeg,
     });
+  }
+
+  // 保留原有逻辑：progress > 0.5 时也生成传统分支（向后兼容）
+  if (progress > 0.5 && triggeredBranches.length === 0) {
+    const branchCount = Math.floor((progress - 0.5) * 4);
+    const actualCount = Math.min(branchCount, 2);
+
+    const minIndex = Math.floor(trunkPixels.length * 0.4);
+    const maxIndex = Math.floor(trunkPixels.length * 0.7);
+
+    for (let i = 0; i < actualCount; i++) {
+      const attachIndex = minIndex + Math.floor(random() * (maxIndex - minIndex));
+      const attachPoint = trunkPixels[attachIndex];
+
+      if (!attachPoint) continue;
+
+      // 使用松柏风格角度
+      const baseAngleDeg = PINE_BRANCH_ANGLE.min +
+        random() * (PINE_BRANCH_ANGLE.max - PINE_BRANCH_ANGLE.min);
+      const droopDeg = PINE_BRANCH_DROOP.min +
+        random() * (PINE_BRANCH_DROOP.max - PINE_BRANCH_DROOP.min);
+      const finalAngleDeg = baseAngleDeg - droopDeg;
+      const angleRad = (finalAngleDeg * Math.PI) / 180;
+
+      const direction = i === 0 ? (random() > 0.5 ? 1 : -1) : (random() > 0.7 ? 1 : -1);
+      const length = 4 + Math.floor(random() * 7);
+
+      const endX = attachPoint.x + direction * Math.floor(length * Math.cos(angleRad));
+      const endY = attachPoint.y - Math.floor(length * Math.sin(angleRad));
+
+      const pixels = drawPixelLine(attachPoint.x, attachPoint.y, endX, endY);
+
+      branches.push({
+        startX: attachPoint.x,
+        startY: attachPoint.y,
+        endX,
+        endY,
+        pixels,
+        droopAngle: droopDeg,
+      });
+    }
   }
 
   return branches;
@@ -1165,9 +1707,17 @@ export function PixelPlant({ className }: PixelPlantProps) {
     lastTriggerTime: 0,
   });
 
+  // J3.1: 侧枝触发状态 refs (#654, #739)
+  const triggeredThresholdsRef = useRef<Set<number>>(new Set());
+  const prevProgressRef = useRef<number>(0);
+  const triggeredBranchesRef = useRef<SideBranchData[]>([]);
+
   // G1.1-G1.2: Store 订阅
   const timer = useStore((state) => state.timer);
   const plant = useStore((state) => state.plant);
+
+  // N5.1: 获取当前轮数 (#735)
+  const currentSession = timer.currentSession;
 
   // G2: 计算 timerProgress
   const progress = timer.isWorkSession ? plant.currentProgress : 0;
@@ -1178,12 +1728,13 @@ export function PixelPlant({ className }: PixelPlantProps) {
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false;
 
-  // G4.2-G4.5 + F8 + H3-H6: 渲染函数（含粒子系统和脉冲动画）
+  // G4.2-G4.5 + F8 + H3-H6 + N5: 渲染函数（含粒子系统、脉冲动画和小木牌）
   const renderPlant = useCallback((
     ctx: CanvasRenderingContext2D,
     currentProgress: number,
     isRunning: boolean,
-    reducedMotion: boolean
+    reducedMotion: boolean,
+    roundCount: number = 1
   ) => {
     const currentTime = Date.now();
 
@@ -1199,6 +1750,13 @@ export function PixelPlant({ className }: PixelPlantProps) {
     } else {
       drawPot(ctx, 12345 + totalGrowth);
     }
+
+    // N5.2-N5.4: 绘制小木牌显示轮数 (#736-738, #822-824, #638)
+    const signBoardX = Math.floor(POT_CONFIG.centerX - POT_CONFIG.topWidth / 2) + SIGN_BOARD_POSITION.offsetX;
+    const signBoardY = POT_CONFIG.topY + SIGN_BOARD_POSITION.offsetY;
+    // N5.3: 确保木牌在 canvas 可见范围内
+    const clampedSignX = Math.max(2, Math.min(CANVAS_WIDTH - SIGN_BOARD_SIZE.width - 2, signBoardX));
+    drawSignBoard(ctx, clampedSignX, signBoardY, roundCount);
 
     // H3: 脉冲触发逻辑 (#311, #452-454)
     // H6: 仅在 timer 运行时触发新脉冲 (#314, #464-466)
@@ -1230,8 +1788,24 @@ export function PixelPlant({ className }: PixelPlantProps) {
     const trunkPixels = generateTrunkPixels(random, currentProgress, totalGrowth);
     drawTrunk(ctx, trunkPixels);
 
-    // G4.4: 渲染分支
-    const branches = generateBranches(random, trunkPixels, currentProgress);
+    // J3: 检测侧枝触发阈值 (#617, #654-657)
+    const newBranches = checkSideBranchTrigger(
+      prevProgressRef.current,
+      currentProgress,
+      triggeredThresholdsRef.current,
+      random
+    );
+
+    // 累积新触发的分支
+    if (newBranches.length > 0) {
+      triggeredBranchesRef.current = [...triggeredBranchesRef.current, ...newBranches];
+    }
+
+    // 更新上一帧进度
+    prevProgressRef.current = currentProgress;
+
+    // G4.4: 渲染分支（使用阈值触发的侧枝）
+    const branches = generateBranches(random, trunkPixels, currentProgress, triggeredBranchesRef.current);
     drawBranches(ctx, branches);
 
     // G4.5 + G4: 渲染叶片（含微风摆动）
@@ -1309,6 +1883,15 @@ export function PixelPlant({ className }: PixelPlantProps) {
     }
   }, [totalGrowth]);
 
+  // J3: 当 progress 重置为 0 时（新 session 开始），清空已触发的阈值
+  useEffect(() => {
+    if (progress === 0) {
+      triggeredThresholdsRef.current.clear();
+      triggeredBranchesRef.current = [];
+      prevProgressRef.current = 0;
+    }
+  }, [progress]);
+
   // G5.1-G5.3: 动画控制
   useEffect(() => {
     const ctx = ctxRef.current;
@@ -1318,36 +1901,36 @@ export function PixelPlant({ className }: PixelPlantProps) {
 
     // G7.2: 如果用户偏好减少动画，直接渲染最终状态
     if (prefersReducedMotion) {
-      renderPlant(ctx, progress, false, true);
+      renderPlant(ctx, progress, false, true, currentSession);
       return;
     }
 
     // G5.2: 动画启动
     if (isRunning) {
       const animate = () => {
-        renderPlant(ctx, progress, true, false);
+        renderPlant(ctx, progress, true, false, currentSession);
         animationFrameIdRef.current = requestAnimationFrame(animate);
       };
       animationFrameIdRef.current = requestAnimationFrame(animate);
     } else {
       // G5.3: 动画停止，渲染一帧静态画面
       cancelAnimationFrame(animationFrameIdRef.current);
-      renderPlant(ctx, progress, false, false);
+      renderPlant(ctx, progress, false, false, currentSession);
     }
 
     // A6: 清理
     return () => {
       cancelAnimationFrame(animationFrameIdRef.current);
     };
-  }, [timer.status, progress, renderPlant, prefersReducedMotion]);
+  }, [timer.status, progress, renderPlant, prefersReducedMotion, currentSession]);
 
-  // 当 totalGrowth 变化时重新渲染
+  // 当 totalGrowth 或 currentSession 变化时重新渲染
   useEffect(() => {
     const ctx = ctxRef.current;
     if (ctx) {
-      renderPlant(ctx, progress, timer.status === 'running', prefersReducedMotion);
+      renderPlant(ctx, progress, timer.status === 'running', prefersReducedMotion, currentSession);
     }
-  }, [totalGrowth, progress, renderPlant, timer.status, prefersReducedMotion]);
+  }, [totalGrowth, progress, renderPlant, timer.status, prefersReducedMotion, currentSession]);
 
   return (
     <canvas
