@@ -49,6 +49,7 @@ export const useStore = create<StoreState & StoreActions>()(
       themeId: 'zen-garden',
       volume: 0.7,
       isMuted: false,
+      isSettingsOpen: false,
 
       // Timer actions
       startTimer: () => set((state) => ({
@@ -159,6 +160,10 @@ export const useStore = create<StoreState & StoreActions>()(
       // Audio actions
       setVolume: (volume) => set({ volume: Math.max(0, Math.min(1, volume)) }),
       toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+
+      // UI actions
+      openSettings: () => set({ isSettingsOpen: true }),
+      closeSettings: () => set({ isSettingsOpen: false }),
     }),
     {
       name: 'zen-station-storage',

@@ -1,7 +1,9 @@
 import { useTimer } from '../hooks/useTimer';
+import { useStore } from '../stores/useStore';
 
 export function Controls() {
   const { status, toggle, reset } = useTimer();
+  const openSettings = useStore((state) => state.openSettings);
 
   const isRunning = status === 'running';
 
@@ -40,8 +42,9 @@ export function Controls() {
         )}
       </button>
 
-      {/* Settings button (placeholder) */}
+      {/* Settings button */}
       <button
+        onClick={openSettings}
         className="w-12 h-12 rounded-full flex items-center justify-center
                    bg-white/50 hover:bg-white/80 transition-colors
                    text-[var(--color-text-muted)] hover:text-[var(--color-text)]"

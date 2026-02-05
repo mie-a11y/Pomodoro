@@ -52,6 +52,7 @@ export interface StoreState {
   themeId: string;
   volume: number;
   isMuted: boolean;
+  isSettingsOpen: boolean;
 }
 
 export interface StoreActions {
@@ -64,4 +65,6 @@ export interface StoreActions {
   updatePlantProgress: (progress: number) => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
+  openSettings: () => void;
+  closeSettings: () => void;
 }

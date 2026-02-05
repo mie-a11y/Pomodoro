@@ -1,5 +1,6 @@
 import { Timer } from './components/Timer';
 import { Controls } from './components/Controls';
+import { Settings } from './components/Settings';
 import { Scene } from './three';
 import { useAudio } from './hooks/useAudio';
 import './index.css';
@@ -24,6 +25,9 @@ function App() {
       <div className="flex-[2.5]">
         <Controls />
       </div>
+
+      {/* Settings Modal */}
+      <Settings />
     </div>
   );
 }
