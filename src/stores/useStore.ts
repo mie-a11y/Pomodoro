@@ -6,7 +6,8 @@ import type {
   TimerSettings,
   TimerState,
   Stats,
-  PlantState
+  PlantState,
+  PlantStage
 } from '../types';
 
 const DEFAULT_SETTINGS: TimerSettings = {
@@ -34,9 +35,19 @@ const DEFAULT_PLANT: PlantState = {
   type: 'bonsai',
   totalGrowth: 0,
   currentProgress: 0,
+  growthPulse: 0,
+  lastStage: 'sprout' as PlantStage,
 };
 
 const getTodayDate = () => new Date().toISOString().split('T')[0];
+
+// Helper to calculate plant stage based on total growth
+function getPlantStage(totalGrowth: number): PlantStage {
+  if (totalGrowth < 1) return 'sprout';
+  if (totalGrowth < 3) return 'young';
+  if (totalGrowth < 8) return 'mature';
+  return 'ancient';
+}
 
 export const useStore = create<StoreState & StoreActions>()(
   persist(
@@ -50,6 +61,7 @@ export const useStore = create<StoreState & StoreActions>()(
       volume: 0.7,
       isMuted: false,
       isSettingsOpen: false,
+      isStatsOpen: false,
 
       // Timer actions
       startTimer: () => set((state) => ({
@@ -136,6 +148,9 @@ export const useStore = create<StoreState & StoreActions>()(
         const isConsecutiveDay = state.stats.lastActiveDate ===
           new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
+        const newTotalGrowth = state.plant.totalGrowth + 1;
+        const newStage = getPlantStage(newTotalGrowth);
+
         return {
           stats: {
             totalPomodoros: state.stats.totalPomodoros + 1,
@@ -147,7 +162,9 @@ export const useStore = create<StoreState & StoreActions>()(
           },
           plant: {
             ...state.plant,
-            totalGrowth: state.plant.totalGrowth + 1,
+            totalGrowth: newTotalGrowth,
+            growthPulse: 1,
+            lastStage: newStage,
           }
         };
       }),
@@ -157,6 +174,10 @@ export const useStore = create<StoreState & StoreActions>()(
         plant: { ...state.plant, currentProgress: progress }
       })),
 
+      consumeGrowthPulse: () => set((state) => ({
+        plant: { ...state.plant, growthPulse: 0 }
+      })),
+
       // Audio actions
       setVolume: (volume) => set({ volume: Math.max(0, Math.min(1, volume)) }),
       toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
@@ -164,6 +185,8 @@ export const useStore = create<StoreState & StoreActions>()(
       // UI actions
       openSettings: () => set({ isSettingsOpen: true }),
       closeSettings: () => set({ isSettingsOpen: false }),
+      openStats: () => set({ isStatsOpen: true }),
+      closeStats: () => set({ isStatsOpen: false }),
     }),
     {
       name: 'zen-station-storage',

@@ -27,6 +27,8 @@ export interface PlantState {
   type: string;              // plant type ID
   totalGrowth: number;       // total completed pomodoros
   currentProgress: number;   // 0-1, progress within current session
+  growthPulse: number;       // 0-1, triggers pulse animation on completion
+  lastStage: PlantStage;     // last known stage for transition detection
 }
 
 export interface ThemeColors {
@@ -53,6 +55,7 @@ export interface StoreState {
   volume: number;
   isMuted: boolean;
   isSettingsOpen: boolean;
+  isStatsOpen: boolean;
 }
 
 export interface StoreActions {
@@ -63,8 +66,11 @@ export interface StoreActions {
   updateSettings: (settings: Partial<TimerSettings>) => void;
   completePomodoro: () => void;
   updatePlantProgress: (progress: number) => void;
+  consumeGrowthPulse: () => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
   openSettings: () => void;
   closeSettings: () => void;
+  openStats: () => void;
+  closeStats: () => void;
 }
