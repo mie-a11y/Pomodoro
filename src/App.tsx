@@ -1,7 +1,8 @@
 import { Timer } from './components/Timer';
 import { Controls } from './components/Controls';
 import { Settings } from './components/Settings';
-import { Scene } from './three';
+import { Stats } from './components/Stats';
+import { PixelPlant } from './components/PixelPlant';
 import { useAudio } from './hooks/useAudio';
 import './index.css';
 
@@ -10,10 +11,10 @@ function App() {
   useAudio();
 
   return (
-    <div className="h-full w-full flex flex-col">
-      {/* 3D Scene - 60% */}
-      <div className="flex-[6]">
-        <Scene />
+    <div className="h-full w-full flex flex-col bg-gradient-to-b from-[#FAF8F5] to-[#F0EBE3]">
+      {/* Pixel Plant Scene - 60% */}
+      <div className="flex-[6] flex items-center justify-center">
+        <PixelPlant />
       </div>
 
       {/* Timer display - 15% */}
@@ -28,6 +29,9 @@ function App() {
 
       {/* Settings Modal */}
       <Settings />
+
+      {/* Stats Modal */}
+      <Stats />
     </div>
   );
 }
