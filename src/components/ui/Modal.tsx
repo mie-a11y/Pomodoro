@@ -1,80 +1,115 @@
-/**
- * Modal - 基础弹窗组件
- * 任务 #100-103
- */
+import { useEffect, useCallback, useId, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
-import { useEffect, useCallback, useState } from 'react';
+const SPRING = { type: 'spring' as const, stiffness: 380, damping: 28, mass: 0.8 };
+const FADE = { duration: 0.2 };
+
+const reducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  children: React.ReactNode;
-  closeOnOverlayClick?: boolean;
-  closeOnEsc?: boolean;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
 }
 
-export function Modal({
-  isOpen,
-  onClose,
-  children,
-  closeOnOverlayClick = true,
-  closeOnEsc = true,
-}: ModalProps) {
-  const [isClosing, setIsClosing] = useState(false);
+export function Modal({ isOpen, onClose, title, subtitle, children }: ModalProps) {
+  const titleId = useId();
 
-  // 关闭处理（支持退场动画）
-  const handleClose = useCallback(() => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, 200);
-  }, [onClose]);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    },
+    [onClose],
+  );
 
-  // #102: ESC 键关闭
   useEffect(() => {
-    if (!isOpen || !closeOnEsc) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-      }
-    };
-
+    if (!isOpen) return;
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closeOnEsc, handleClose]);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, handleKeyDown]);
 
-  // #103: 点击遮罩关闭
-  const handleOverlayClick = useCallback(() => {
-    if (closeOnOverlayClick) {
-      handleClose();
-    }
-  }, [closeOnOverlayClick, handleClose]);
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={FADE}
+        >
+          {/* Overlay */}
+          <motion.div
+            className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"
+            onClick={onClose}
+            aria-hidden
+          />
 
-  if (!isOpen && !isClosing) return null;
+          {/* Panel */}
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            className="relative w-full max-w-[420px] max-h-[80vh] overflow-y-auto overflow-x-hidden rounded-3xl border border-white/40 bg-white/55 px-7 pt-7 pb-6 ring-1 ring-inset ring-white/30 shadow-[0_8px_40px_-4px_rgba(0,0,0,0.08),0_4px_16px_-2px_rgba(0,0,0,0.05)]"
+            style={{ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={
+              reducedMotion
+                ? { opacity: 0, transition: { duration: 0.15 } }
+                : { opacity: 0, scale: 0.98, y: 4, transition: { duration: 0.15 } }
+            }
+            transition={SPRING}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-xl bg-transparent transition-colors duration-150 hover:bg-black/[0.04] cursor-pointer"
+              aria-label="关闭"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-text-muted)]">
+                <path d="M4 4l8 8M12 4l-8 8" />
+              </svg>
+            </button>
 
+            {/* Header */}
+            <ModalHeader id={titleId} title={title} subtitle={subtitle} />
+
+            {/* Content */}
+            {children}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
+interface ModalHeaderProps {
+  id: string;
+  title: string;
+  subtitle?: string;
+}
+
+export function ModalHeader({ id, title, subtitle }: ModalHeaderProps) {
   return (
-    // #100: 遮罩层
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center ${
-        isClosing ? 'animate-modal-fade-out' : 'animate-modal-fade-in'
-      }`}
-      onClick={handleOverlayClick}
-    >
-      {/* 背景遮罩 */}
-      <div className="absolute inset-0 bg-black/50" />
-
-      {/* #101: 弹窗容器 */}
-      <div
-        className={`relative w-full max-w-sm mx-4 max-h-[85vh] overflow-y-auto
-          bg-gradient-to-b from-[var(--bg-start)] to-[var(--bg-end)]
-          rounded-2xl shadow-xl
-          ${isClosing ? 'animate-modal-scale-out' : 'animate-modal-scale-in'}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
+    <div className="mb-6 flex flex-col gap-1">
+      <h2 id={id} className="text-lg font-semibold tracking-[-0.01em] text-[var(--color-text)]">
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="text-[13px] font-normal text-[var(--color-text-subtle)]">{subtitle}</p>
+      )}
     </div>
   );
 }

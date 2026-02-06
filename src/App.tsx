@@ -1,7 +1,7 @@
 import { Timer } from './components/Timer';
 import { Controls } from './components/Controls';
-import { Settings } from './components/Settings';
-import { Stats } from './components/Stats';
+import { SettingsModal } from './components/settings';
+import { StatsModal } from './components/stats';
 import { PixelPlant } from './components/PixelPlant';
 import { useAudio } from './hooks/useAudio';
 import './index.css';
@@ -28,10 +28,10 @@ function App() {
       </div>
 
       {/* Settings Modal */}
-      <Settings />
+      <SettingsModal />
 
       {/* Stats Modal */}
-      <Stats />
+      <StatsModal />
     </div>
   );
 }

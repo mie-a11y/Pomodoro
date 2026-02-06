@@ -1,9 +1,4 @@
-/**
- * Slider - 自定义滑块组件
- * 任务 #27-31, #107-109
- */
-
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface SliderProps {
   value: number;
@@ -14,129 +9,81 @@ interface SliderProps {
   disabled?: boolean;
 }
 
-export function Slider({
-  value,
-  onChange,
-  min = 0,
-  max = 1,
-  step = 0.1,
-  disabled = false,
-}: SliderProps) {
+export function Slider({ value, onChange, min = 0, max = 1, step = 0.05, disabled = false }: SliderProps) {
+  const [dragging, setDragging] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
 
-  // 计算值对应的百分比
-  const percentage = ((value - min) / (max - min)) * 100;
-
-  // #109: 根据位置计算值
-  const calculateValue = useCallback(
+  const calcValue = useCallback(
     (clientX: number) => {
-      if (!trackRef.current) return value;
-
-      const rect = trackRef.current.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const ratio = Math.max(0, Math.min(1, x / rect.width));
-      const rawValue = min + ratio * (max - min);
-
-      // 对齐到 step
-      const steppedValue = Math.round(rawValue / step) * step;
-      return Math.max(min, Math.min(max, steppedValue));
+      const track = trackRef.current;
+      if (!track) return value;
+      const rect = track.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const raw = min + ratio * (max - min);
+      return Math.round(raw / step) * step;
     },
-    [min, max, step, value]
+    [min, max, step, value],
   );
 
-  // #107: 鼠标拖动
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
       if (disabled) return;
       e.preventDefault();
-      setIsDragging(true);
-      onChange(calculateValue(e.clientX));
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      setDragging(true);
+      onChange(calcValue(e.clientX));
     },
-    [disabled, calculateValue, onChange]
+    [disabled, calcValue, onChange],
   );
 
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      onChange(calculateValue(e.clientX));
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, calculateValue, onChange]);
-
-  // #108: 触摸拖动
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (disabled) return;
-      setIsDragging(true);
-      onChange(calculateValue(e.touches[0].clientX));
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragging || disabled) return;
+      onChange(calcValue(e.clientX));
     },
-    [disabled, calculateValue, onChange]
+    [dragging, disabled, calcValue, onChange],
   );
 
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (!isDragging || disabled) return;
-      e.preventDefault();
-      onChange(calculateValue(e.touches[0].clientX));
-    },
-    [isDragging, disabled, calculateValue, onChange]
-  );
-
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
+  const handlePointerUp = useCallback(() => {
+    setDragging(false);
   }, []);
 
-  // #109: 点击轨道跳转
-  const handleTrackClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (disabled) return;
-      onChange(calculateValue(e.clientX));
-    },
-    [disabled, calculateValue, onChange]
-  );
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => setDragging(false);
+  }, []);
+
+  const pct = ((value - min) / (max - min)) * 100;
 
   return (
     <div
       ref={trackRef}
-      className={`relative h-2 rounded-full cursor-pointer select-none
-        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-      style={{ backgroundColor: 'var(--color-border-strong)' }}
-      onClick={handleTrackClick}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      className={`relative flex h-10 items-center ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      role="slider"
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={Math.round(value * 100) / 100}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
     >
-      {/* #28: 轨道填充 */}
-      <div
-        className="absolute inset-y-0 left-0 rounded-full transition-all duration-75"
-        style={{
-          width: `${percentage}%`,
-          background: 'linear-gradient(90deg, var(--color-primary-light), var(--color-primary))',
-        }}
-      />
-
-      {/* #29: 把手 */}
-      <div
-        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2
-          w-5 h-5 rounded-full bg-white border-2 border-[var(--color-primary)]
-          shadow-md transition-transform duration-75
-          ${isDragging ? 'scale-110' : 'hover:scale-105'}`}
-        style={{ left: `${percentage}%` }}
-      />
+      {/* Track */}
+      <div className="relative h-[3px] w-full rounded-full bg-black/[0.06]">
+        {/* Filled */}
+        <div
+          className="absolute left-0 top-0 h-full rounded-full bg-[var(--color-primary)] transition-[width] duration-75"
+          style={{ width: `${pct}%` }}
+        />
+        {/* Thumb */}
+        <div
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-4 w-4 rounded-full bg-[var(--color-primary)] shadow-[0_1px_4px_rgba(45,74,62,0.25)] transition-transform duration-100 ${
+            dragging ? 'scale-[1.2] shadow-[0_2px_8px_rgba(45,74,62,0.3)]' : 'hover:scale-110'
+          }`}
+          style={{ left: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }
